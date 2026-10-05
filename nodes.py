@@ -243,6 +243,15 @@ class CLIPLoaderGGUF:
             embedding_directory = folder_paths.get_folder_paths("embeddings"),
         )
         clip.patcher = GGUFModelPatcher.clone(clip.patcher)
+        if clip_type == comfy.sd.CLIPType.MINIMAX and any(is_quantized(weight) for state in clip_data for weight in state.values()):
+            original_estimate = getattr(clip.cond_stage_model, "memory_estimation_function", None)
+
+            def estimate_gguf_memory(tokens, device):
+                estimated = original_estimate(tokens, device=device) if original_estimate is not None else 0
+                return max(estimated, 3 * 1024**3) if device.type == "cuda" else estimated
+
+            clip.cond_stage_model.memory_estimation_function = estimate_gguf_memory
+            logging.info("ComfyUI-GGUF: MiniMax GGUF text encoder uses at least 3 GiB of CUDA working memory.")
         return clip
 
     def load_clip(self, clip_name, type="stable_diffusion"):

@@ -482,6 +482,8 @@ def gguf_clip_loader(path):
     elif arch in {"llama", "qwen2vl", "qwen3", "qwen3vl", "gemma3"}:
         # TODO: pass model_options["vocab_size"] to loader somehow
         temb_key = "token_embd.weight"
+        if arch == "qwen3vl" and temb_key not in sd and "model.embed_tokens.weight" in sd:
+            temb_key = "model.embed_tokens.weight"
         if temb_key in sd and sd[temb_key].shape[0] >= (64 * 1024):
             if arch == "llama" and sd[temb_key].shape == (131072, 5120):
                 # non-standard Comfy-Org tokenizer
